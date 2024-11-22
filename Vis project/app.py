@@ -1,5 +1,6 @@
 from dash import Dash, dcc, html, Input, Output, callback
 import plotly.express as px
+from IPython.display import display, HTML
 import pandas as pd
 import os
 import signal
@@ -15,7 +16,7 @@ colors = {
 # see https://plotly.com/python/px-arguments/ for more options
 df = pd.DataFrame({
     "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
-    "Amount": [4, 1, 2, 2, 4, 5],
+    "Amount": [4, 1, 2, 2, 4, 4],
     "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
 })
 
@@ -58,15 +59,9 @@ words = []
 fig = px.bar(df, x="Amount", y="Fruit", color="City", barmode="relative")
 
 # wordFig = px.bar( x=range(len("WordSections")), barmode="relative")
-wordFig = px.bar(textdf, x = "Chunk", y="Amount", color="Word", barmode="relative")
+# wordFig = px.bar(textdf, x = "Chunk", y="Amount", color="Word", barmode="relative")
 
-wordFig.update_layout(
-    plot_bgcolor=colors['background'],
-    paper_bgcolor=colors['background'],
-    font_color=colors['text'],
-    yaxis = dict(range=[-10,10],),
-    xaxis = dict(range=[0,10],)
-)
+
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
     html.Div(id='my-output'),
@@ -94,22 +89,67 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
     }),
 
     dcc.Graph(
-        id='example-graph-2',
-        figure=wordFig
+        id='example-graph-2'
+        
     )
 ])
 
 @callback(
-    Output(component_id='my-output', component_property='children'),
-    Input(component_id='dropdown', component_property='value')
+    # Output(component_id='my-output', component_property='children'),
+    Output(component_id='example-graph-2', component_property='figure'),
+    Input(component_id='dropdown', component_property='words')
 )
-def update_output_div(input_value):
-    print(textdf)
-    return f'Output: {input_value}'
 
-def update_words(input_value):
-    words.append(input_value)
-    return words
+def update_figure(words):
+    word = words[len(word)-1]
+
+    print(words)
+
+    for i, chunk in enumerate(wordSections):
+        amount = chunk.count(word)
+        if amount != 0:
+            print("Adding entry")
+            row = pd.Series({'Chunk': i+1, 'Word': word, 'Amount': amount}).to_frame().T
+            textdf = pd.concat([textdf, row], ignore_index=True)
+
+    print(textdf)
+
+    fig = px.bar(textdf, x = "Chunk", y="Amount", color="Word", barmode="relative")
+
+    fig.update_layout(
+        plot_bgcolor=colors['background'],
+        paper_bgcolor=colors['background'],
+        font_color=colors['text'],
+        yaxis = dict(range=[-10,10],),
+        xaxis = dict(range=[0,10],)
+)
+
+    return fig
+
+
+# def update_output_div(input_value):
+#     # updateDF(input_value)
+#     return f'Output: {input_value}'
+
+
+def updateDF(word):
+    word = word[len(word)-1]
+    print(word)
+    newEntries = pd.DataFrame()
+    for i, chunk in enumerate(wordSections):
+        amount = chunk.count(word)
+        if amount != 0:
+            print("Adding entry")
+            row = pd.Series({'Chunk': i+1, 'Word': word, 'Amount': amount}).to_frame().T
+            print("=================")
+            print(len(textdf.index))
+            textdf.loc[len(textdf.index)] = row
+            # newdf = pd.concat([textdf, row], ignore_index=True)
+            # newdf = newdf.append(row, ignore_index=True)
+
+    display(textdf)
+    # print(textdf)
+
 
 # app.layout = html.Div([
 #     html.Div(children=[
