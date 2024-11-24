@@ -12,24 +12,6 @@ colors = {
     'text': '#241251'
 }
 
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
-df = pd.DataFrame({
-    "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
-    "Amount": [4, 1, 2, 2, 4, 4],
-    "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
-})
-
-
-# Functions
-# assume you have a "long-form" data frame
-# see https://plotly.com/python/px-arguments/ for more options
-df = pd.DataFrame({
-    "Fruit": ["Apples", "Oranges", "Bananas", "Apples", "Oranges", "Bananas"],
-    "Amount": [4, 1, 2, 2, 4, 5],
-    "City": ["SF", "SF", "SF", "Montreal", "Montreal", "Montreal"]
-})
-
 # Functions
 def divide_chunks(l, n):
     
@@ -41,80 +23,56 @@ def divide_chunks(l, n):
 transcript = ['SomeAnnouncer', 'This', 'is', 'an', 'intense', 'debate', 'between', 'two', 'fellas.', "Let's", 'us', 'see', 'what', 'they', 'have', 'to', 'say', 'about', 'politics.', 'Fella', '1', 'I', 'am', 'right,', 'and', 'you', 'are', 'wrong.', 'Fella', '2', 'No!', "You're", 'fake', 'news.', 'I', 'am', 'real', 'news!!!', 'Fella', '1', 'Come', 'on,', 'man!', "Don't", 'be', 'a', 'dumdum.', 'Fella', '2', 'Fake', 'news!', 'Fake', 'news!', "You're", 'fake', 'news!']
 wordSections = list(divide_chunks(transcript, 5))
 
-chunks = []
+
+# textdf = pd.DataFrame({
+#     "Chunk": [1,2,3, 6, 7, 8, 9],
+#     "Word": ["Fraud","Fraud","Fraud", "abortion", "abortion", "abortion", "abortion"],
+#     "Amount": [2, 5, 3, 1, 4, 7, 3]
+
+# })
 
 
-textdf = pd.DataFrame({
-    "Chunk": [1,2,3, 6, 7, 8, 9],
-    "Word": ["Fraud","Fraud","Fraud", "abortion", "abortion", "abortion", "abortion"],
-    "Amount": [2, 5, 3, 1, 4, 7, 3]
-
-})
-# textdf = textdf[textdf.Word != "Fraud"]
-
-
-words = []
-
-
-fig = px.bar(df, x="Amount", y="Fruit", color="City", barmode="relative")
-
-# wordFig = px.bar( x=range(len("WordSections")), barmode="relative")
-# wordFig = px.bar(textdf, x = "Chunk", y="Amount", color="Word", barmode="relative")
-
-
-
-app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[
-    html.Div(id='my-output'),
-    
-    html.Div(children=[
-        html.Label('Multi-Select Dropdown'),
-        dcc.Dropdown(transcript,
+app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[   
+    dcc.Dropdown(transcript,
                      id="dropdown",
                      multi=True),
-
-        html.Br(),
-    ], style={'padding': 10, 'flex': 1}),
-
-    html.H1(
-        children='Title',
-        style={
-            'textAlign': 'center',
-            'color': colors['text']
-        }
-    ),
-
-    html.Div(children='Dash: A web application framework for your data.', style={
-        'textAlign': 'center',
-        'color': colors['text']
-    }),
-
     dcc.Graph(
-        id='example-graph-2'
+        id='word-graph'
         
-    )
+    ),
+    dcc.Store(id='textdf')
 ])
 
 @callback(
-    # Output(component_id='my-output', component_property='children'),
-    Output(component_id='example-graph-2', component_property='figure'),
-    Input(component_id='dropdown', component_property='words')
+        Output('textdf', 'data'),
+        Input('dropdown', 'value'),
+        Input('textdf', 'data')
 )
+def update_data(input_value, input_data):
+    df = pd.DataFrame(input_data)
+    word = input_value[len(input_value)-1]
 
-def update_figure(words):
-    word = words[len(word)-1]
-
-    print(words)
+    if (df.empty == False and word in df["Word"].values):
+        return input_data
 
     for i, chunk in enumerate(wordSections):
         amount = chunk.count(word)
         if amount != 0:
-            print("Adding entry")
             row = pd.Series({'Chunk': i+1, 'Word': word, 'Amount': amount}).to_frame().T
-            textdf = pd.concat([textdf, row], ignore_index=True)
+            df = pd.concat([df, row], ignore_index=True)
 
-    print(textdf)
+    return df.to_dict('records')
 
-    fig = px.bar(textdf, x = "Chunk", y="Amount", color="Word", barmode="relative")
+@callback(
+    Output('word-graph', 'figure'),
+    Input('dropdown', 'value'),
+    Input('textdf', 'data')
+)
+def update_figure(words_selected, input_data):
+    df = pd.DataFrame(input_data)
+    dff = df[df['Word'].isin(words_selected)]
+
+    fig = px.bar(dff, x = "Chunk", y="Amount", color="Word", barmode="relative")
 
     fig.update_layout(
         plot_bgcolor=colors['background'],
@@ -122,71 +80,9 @@ def update_figure(words):
         font_color=colors['text'],
         yaxis = dict(range=[-10,10],),
         xaxis = dict(range=[0,10],)
-)
+    )
 
     return fig
-
-
-# def update_output_div(input_value):
-#     # updateDF(input_value)
-#     return f'Output: {input_value}'
-
-
-def updateDF(word):
-    word = word[len(word)-1]
-    print(word)
-    newEntries = pd.DataFrame()
-    for i, chunk in enumerate(wordSections):
-        amount = chunk.count(word)
-        if amount != 0:
-            print("Adding entry")
-            row = pd.Series({'Chunk': i+1, 'Word': word, 'Amount': amount}).to_frame().T
-            print("=================")
-            print(len(textdf.index))
-            textdf.loc[len(textdf.index)] = row
-            # newdf = pd.concat([textdf, row], ignore_index=True)
-            # newdf = newdf.append(row, ignore_index=True)
-
-    display(textdf)
-    # print(textdf)
-
-
-# app.layout = html.Div([
-#     html.Div(children=[
-#         html.Label('Dropdown'),
-#         dcc.Dropdown(['New York City', 'Montréal', 'San Francisco'], 'Montréal'),
-
-#         html.Br(),
-#         html.Label('Multi-Select Dropdown'),
-#         dcc.Dropdown(['New York City', 'Montréal', 'San Francisco'],
-#                      ['Montréal', 'San Francisco'],
-#                      multi=True),
-
-#         html.Br(),
-#         html.Label('Radio Items'),
-#         dcc.RadioItems(['New York City', 'Montréal', 'San Francisco'], 'Montréal'),
-#     ], style={'padding': 10, 'flex': 1}),
-
-#     html.Div(children=[
-#         html.Label('Checkboxes'),
-#         dcc.Checklist(['New York City', 'Montréal', 'San Francisco'],
-#                       ['Montréal', 'San Francisco']
-#         ),
-
-#         html.Br(),
-#         html.Label('Text Input'),
-#         dcc.Input(value='MTL', type='text'),
-
-#         html.Br(),
-#         html.Label('Slider'),
-#         dcc.Slider(
-#             min=0,
-#             max=9,
-#             marks={i: f'Label {i}' if i == 1 else str(i) for i in range(1, 6)},
-#             value=5,
-#         ),
-#     ], style={'padding': 10, 'flex': 1})
-# ], style={'display': 'flex', 'flexDirection': 'row'})
 
 
 if __name__ == '__main__':
