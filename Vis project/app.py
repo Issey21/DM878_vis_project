@@ -4,12 +4,14 @@ from IPython.display import display, HTML
 import pandas as pd
 import os
 import signal
+import textExtraction as ext
+import math
 
 app = Dash(__name__)
 
 colors = {
-    'background': '#FFFFFF',
-    'text': '#241251'
+    'background': '#313131',
+    'text': '#FFFFFF'
 }
 
 # Functions
@@ -20,8 +22,15 @@ def divide_chunks(l, n):
         yield l[i:i + n]
 
 
-transcript = ['SomeAnnouncer', 'This', 'is', 'an', 'intense', 'debate', 'between', 'two', 'fellas.', "Let's", 'us', 'see', 'what', 'they', 'have', 'to', 'say', 'about', 'politics.', 'Fella', '1', 'I', 'am', 'right,', 'and', 'you', 'are', 'wrong.', 'Fella', '2', 'No!', "You're", 'fake', 'news.', 'I', 'am', 'real', 'news!!!', 'Fella', '1', 'Come', 'on,', 'man!', "Don't", 'be', 'a', 'dumdum.', 'Fella', '2', 'Fake', 'news!', 'Fake', 'news!', "You're", 'fake', 'news!']
-wordSections = list(divide_chunks(transcript, 5))
+speakers, words, speaker = ext.extract("Vis project/Transcripts/trump_harris_debate.txt")
+chunkSize = 100
+chunkCount = math.floor(len(words)/chunkSize)
+
+print(speakers)
+
+
+# words = ['SomeAnnouncer', 'This', 'is', 'an', 'intense', 'debate', 'between', 'two', 'fellas.', "Let's", 'us', 'see', 'what', 'they', 'have', 'to', 'say', 'about', 'politics.', 'Fella', '1', 'I', 'am', 'right,', 'and', 'you', 'are', 'wrong.', 'Fella', '2', 'No!', "You're", 'fake', 'news.', 'I', 'am', 'real', 'news!!!', 'Fella', '1', 'Come', 'on,', 'man!', "Don't", 'be', 'a', 'dumdum.', 'Fella', '2', 'Fake', 'news!', 'Fake', 'news!', "You're", 'fake', 'news!']
+wordSections = list(divide_chunks(words, chunkSize))
 
 
 # textdf = pd.DataFrame({
@@ -33,7 +42,7 @@ wordSections = list(divide_chunks(transcript, 5))
 
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[   
-    dcc.Dropdown(transcript,
+    dcc.Dropdown(list(set(words)),
                      id="dropdown",
                      multi=True),
     dcc.Graph(
@@ -49,11 +58,18 @@ app.layout = html.Div(style={'backgroundColor': colors['background']}, children=
         Input('textdf', 'data')
 )
 def update_data(input_value, input_data):
+    
     df = pd.DataFrame(input_data)
+
+    if (not input_value):
+        return input_data
+    
     word = input_value[len(input_value)-1]
 
     if (df.empty == False and word in df["Word"].values):
         return input_data
+
+    
 
     for i, chunk in enumerate(wordSections):
         amount = chunk.count(word)
@@ -69,17 +85,24 @@ def update_data(input_value, input_data):
     Input('textdf', 'data')
 )
 def update_figure(words_selected, input_data):
-    df = pd.DataFrame(input_data)
-    dff = df[df['Word'].isin(words_selected)]
 
-    fig = px.bar(dff, x = "Chunk", y="Amount", color="Word", barmode="relative")
+   
+        
+
+    df = pd.DataFrame(input_data)
+    
+    if (not input_data):
+        return {}
+    
+    df = df[df['Word'].isin(words_selected)]
+
+    fig = px.bar(df, x = "Chunk", y="Amount", color="Word", barmode="relative", range_x=(0,chunkCount+1)).update_traces(width = 0.7)
 
     fig.update_layout(
         plot_bgcolor=colors['background'],
         paper_bgcolor=colors['background'],
         font_color=colors['text'],
-        yaxis = dict(range=[-10,10],),
-        xaxis = dict(range=[0,10],)
+        yaxis = dict(range=[-5,5],)
     )
 
     return fig

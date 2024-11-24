@@ -1,36 +1,41 @@
-import re   # regular expression
+import re
 
-path = "Transcripts/TestScript.txt"
-re_date = re.compile("\(\d{2}:\d{2}\)")    # matches timestamps on the format (dd:dd) where d = [0-9]
-re_name = re.compile(".+:\s") # matches on speakers. Whenever there is a speaker, their name is stated as "NAME: ".
-re_endOfSentence = re.compile(".+\.$")   # matches on end of sentence. 
+def extract(path):
+    re_parenthesis = re.compile("[\(\[\{].*?[\}\]\)]")  # matches on all parenthesis and everything inside of them
+    re_puntuation = re.compile("[\.\,;!?\"\-'’”…]")    # matches on punctuation except ":"
+    re_names = re.compile(".*:")
 
-# Extracting all words
-# transcript_words = open(path, "r").read().split()
+    speakers = {""}  # set of all speakers
+    currentSpeaker = "" # the current speaker for the current part of the transcript
+    words = [""]    # all words in the transcript. Each index is a word, in the order they come in the transcript
+    speaker = [""]  # the speaker for the word on the same index in "words"
 
-# # Finds the names of all speakers
-# for index, word in enumerate(transcript_words):
-#     if(re_name.match(word)):
-#         names.append(word)
+    with open(path, 'r', encoding="utf-8") as file:
+        for line in file:
+            l = line
 
-# # Removing timestamps from text
-# for index, word in enumerate(transcript_words):
-#     if(re_date.match(word)):
-#         transcript_words.pop(index)
+            # Cleans each line in the file by removing unnecessary characters and text 
+            l = re.sub(re_parenthesis, "", l).strip()
+            l = re.sub(re_puntuation, "", l).strip()
 
-line = []
-names = []
-name = ""
+            # Extracts name of the speaker for this line, if the line has a speaker.
+            # If no speaker is mentioned, it is assumed the previously mentioned speaker, is the speaker
+            # for this line as well.
+            lineSpeaker = re.match(re_names, l)
+            if lineSpeaker:
+                currentSpeaker = re.sub(":", "", lineSpeaker.group(0)).strip()
+                speakers.add(currentSpeaker)
+                l = re.sub(lineSpeaker.group(0), "", l).strip()  # removes the name of the speaker from the line
 
-with open(path, 'r') as file:   # reading file
+            l = l.casefold().split()    # Splits the line into seperate words
+            words.extend(l) # appends the words to the list of all words
 
-    for l in file:  # reading one line at a time
-        name = re.findall(re_name, l)
-        if(len(name) > 0):
-            names.append(name)
+            for word in l:  # assigns a speaker to each word in l
+                speaker.append(currentSpeaker)
 
+    # if no element is added to the set, Python does not see it as a set, so the empty elements need to be removed...
+    speakers.remove("") 
+    words.remove("")
+    speaker.remove("")
 
-
-
-print(f'Names: {names} \n')
-# print(transcript_words)
+    return [speakers, words, speaker]
