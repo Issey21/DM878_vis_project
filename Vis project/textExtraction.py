@@ -2,8 +2,8 @@ import re
 
 def extract(path):
     re_parenthesis = re.compile("[\(\[\{].*?[\}\]\)]")  # matches on all parenthesis and everything inside of them
-    re_puntuation = re.compile("[\.\,;!?\"\-–'’”…]")    # matches on punctuation except ":"
-    re_names = re.compile(".*:")
+    re_notLetters = re.compile("[^a-zA-Z\s]") # matches on everything that is not a letter or a space
+    re_names = re.compile(".*:")    # matches on everything before a ":"
 
     maxNameLenght = 12  # number of words allowed in a name
 
@@ -18,7 +18,6 @@ def extract(path):
 
             # Cleans each line in the file by removing unnecessary characters and text 
             l = re.sub(re_parenthesis, "", l).strip()
-            l = re.sub(re_puntuation, "", l).strip()
             l = l.partition(":")    # splits string into 3, before the first ":", the first ":", and after the first ":"
             l = f"{l[0]}{l[1]}{l[2].replace(":", "")}"  # puts l back together, removing all other ":" than the first
 
@@ -31,7 +30,7 @@ def extract(path):
                 speakers.add(currentSpeaker)
                 l = re.sub(lineSpeaker.group(0), "", l).strip()  # removes the name of the speaker from the line
 
-            l = l.casefold().split()    # Splits the line into seperate words
+            l = re.sub(re_notLetters, "", l).casefold().split()    # Splits the line into seperate words
             words.extend(l) # appends the words to the list of all words
 
             for word in l:  # assigns a speaker to each word in l
@@ -43,3 +42,13 @@ def extract(path):
     speaker.remove("")
 
     return [speakers, words, speaker]
+
+## USED FOR TESTING
+
+# path = "Vis project/Transcripts/testTranscript.txt"
+
+# ext = extract(path)
+
+# for i in range(len(ext[1])):
+#     print(f'{ext[1][i] : <20}{':' : ^30}{ext[2][i] : >40}')
+# print(ext[0])
