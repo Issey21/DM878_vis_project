@@ -2,8 +2,10 @@ import re
 
 def extract(path):
     re_parenthesis = re.compile("[\(\[\{].*?[\}\]\)]")  # matches on all parenthesis and everything inside of them
-    re_puntuation = re.compile("[\.\,;!?\"\-'’”…]")    # matches on punctuation except ":"
+    re_puntuation = re.compile("[\.\,;!?\"\-–'’”…]")    # matches on punctuation except ":"
     re_names = re.compile(".*:")
+
+    maxNameLenght = 12  # number of words allowed in a name
 
     speakers = {""}  # set of all speakers
     currentSpeaker = "" # the current speaker for the current part of the transcript
@@ -17,12 +19,14 @@ def extract(path):
             # Cleans each line in the file by removing unnecessary characters and text 
             l = re.sub(re_parenthesis, "", l).strip()
             l = re.sub(re_puntuation, "", l).strip()
+            l = l.partition(":")    # splits string into 3, before the first ":", the first ":", and after the first ":"
+            l = f"{l[0]}{l[1]}{l[2].replace(":", "")}"  # puts l back together, removing all other ":" than the first
 
             # Extracts name of the speaker for this line, if the line has a speaker.
             # If no speaker is mentioned, it is assumed the previously mentioned speaker, is the speaker
             # for this line as well.
             lineSpeaker = re.match(re_names, l)
-            if lineSpeaker:
+            if (lineSpeaker and (len(lineSpeaker.group(0).split()) <= maxNameLenght)):  # a new speaker is found and the new speakers name is less than 12 characters
                 currentSpeaker = re.sub(":", "", lineSpeaker.group(0)).strip()
                 speakers.add(currentSpeaker)
                 l = re.sub(lineSpeaker.group(0), "", l).strip()  # removes the name of the speaker from the line
