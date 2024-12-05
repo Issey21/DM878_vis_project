@@ -23,7 +23,7 @@ def divide_chunks(l, n):
 
 
 speakers, words, speaker = ext.extract("Vis project/Transcripts/trump_harris_debate.txt")
-chunkSize = 100
+chunkSize = 50
 chunkCount = math.floor(len(words)/chunkSize)
 
 print(speakers)
@@ -86,9 +86,6 @@ def update_data(input_value, input_data):
 )
 def update_figure(words_selected, input_data):
 
-   
-        
-
     df = pd.DataFrame(input_data)
     
     if (not input_data):
@@ -102,7 +99,8 @@ def update_figure(words_selected, input_data):
         plot_bgcolor=colors['background'],
         paper_bgcolor=colors['background'],
         font_color=colors['text'],
-        yaxis = dict(range=[-5,5],)
+        yaxis = dict(range=[-5,5],),
+        transition_duration=500
     )
 
     return fig
