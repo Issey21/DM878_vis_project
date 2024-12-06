@@ -50,5 +50,5 @@ def extract(path):
 # ext = extract(path)
 
 # for i in range(len(ext[1])):
-#     print(f'{ext[1][i] : <20}{':' : ^30}{ext[2][i] : >40}')
+#     print(f'{ext[1][i] : <20}{':' : ^20}{ext[2][i] : >20}')
 # print(ext[0])
