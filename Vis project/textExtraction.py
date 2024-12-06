@@ -2,7 +2,7 @@ import re
 
 def extract(path):
     re_parenthesis = re.compile("[\(\[\{].*?[\}\]\)]")  # matches on all parenthesis and everything inside of them
-    re_notLetters = re.compile("[^a-zA-Z\s]") # matches on everything that is not a letter or a space
+    re_notLetters = re.compile("[^a-zA-Z\s’']") # matches on everything that is not a letter, a space or an apostrophe
     re_names = re.compile(".*:")    # matches on everything before a ":"
 
     maxNameLenght = 12  # number of words allowed in a name
