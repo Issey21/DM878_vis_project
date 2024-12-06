@@ -1,11 +1,18 @@
-from dash import Dash, dcc, html, Input, Output, callback
+from dash import Dash, dcc, html, Input, Output, dash_table, callback
 import plotly.express as px
+import plotly.graph_objects as go
+import dash_ag_grid as dag
 from IPython.display import display, HTML
 import pandas as pd
 import os
 import signal
 import textExtraction as ext
 import math
+import nltk
+from nltk.corpus import stopwords
+
+nltk.download('stopwords')
+excludedWords = stopwords.words('english')
 
 app = Dash(__name__)
 
@@ -21,19 +28,18 @@ def divide_chunks(l, n):
     for i in range(0, len(l), n): 
         yield l[i:i + n]
 
-
 speakers, words, speaker = ext.extract("Vis project/Transcripts/trump_harris_debate.txt")
-chunkSize = 50
+chunkSize = 100
 chunkCount = math.floor(len(words)/chunkSize)
 
-print(speakers)
+wordDF = pd.DataFrame({'Word': [word for word in words if word not in excludedWords]})
 
+sortedDF = wordDF.value_counts().reset_index().rename(columns={'index': 'Word', 'A': 'Count'})
 
 # words = ['SomeAnnouncer', 'This', 'is', 'an', 'intense', 'debate', 'between', 'two', 'fellas.', "Let's", 'us', 'see', 'what', 'they', 'have', 'to', 'say', 'about', 'politics.', 'Fella', '1', 'I', 'am', 'right,', 'and', 'you', 'are', 'wrong.', 'Fella', '2', 'No!', "You're", 'fake', 'news.', 'I', 'am', 'real', 'news!!!', 'Fella', '1', 'Come', 'on,', 'man!', "Don't", 'be', 'a', 'dumdum.', 'Fella', '2', 'Fake', 'news!', 'Fake', 'news!', "You're", 'fake', 'news!']
 wordSections = list(divide_chunks(words, chunkSize))
 
-
-# textdf = pd.DataFrame({
+# df = pd.DataFrame({
 #     "Chunk": [1,2,3, 6, 7, 8, 9],
 #     "Word": ["Fraud","Fraud","Fraud", "abortion", "abortion", "abortion", "abortion"],
 #     "Amount": [2, 5, 3, 1, 4, 7, 3]
@@ -42,15 +48,25 @@ wordSections = list(divide_chunks(words, chunkSize))
 
 
 app.layout = html.Div(style={'backgroundColor': colors['background']}, children=[   
-    dcc.Dropdown(list(set(words)),
+    dcc.Dropdown(list(set([word for word in words if word not in excludedWords])),
                      id="dropdown",
                      multi=True),
     dcc.Graph(
         id='word-graph'
         
     ),
-    dcc.Store(id='textdf')
+    dcc.Store(id='textdf'),
+    dag.AgGrid(
+        id="table",
+        columnDefs=[{"field": i} for i in sortedDF.columns],
+        rowData=sortedDF.to_dict("records"),
+        columnSize="sizeToFit",
+        defaultColDef={"editable": True,  "cellDataType": False},
+        dashGridOptions={"animateRows": False}
+    ),
+
 ])
+
 
 @callback(
         Output('textdf', 'data'),
@@ -79,6 +95,21 @@ def update_data(input_value, input_data):
 
     return df.to_dict('records')
 
+
+@callback(
+    Output('dropdown', 'value'),
+    Input('dropdown', 'value'),
+    Input('table', 'cellClicked')
+)
+def update_dropdown(words_selected, input_value):
+    print(words_selected)
+    print(input_value)
+
+    words_selected.append(input_value['value'])
+
+    print(words_selected)
+    return words_selected
+
 @callback(
     Output('word-graph', 'figure'),
     Input('dropdown', 'value'),
@@ -86,6 +117,7 @@ def update_data(input_value, input_data):
 )
 def update_figure(words_selected, input_data):
 
+    
     df = pd.DataFrame(input_data)
     
     if (not input_data):
