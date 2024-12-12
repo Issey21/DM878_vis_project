@@ -46,10 +46,10 @@ def extract(path):
 
 ## USED FOR TESTING
 
-path = "Vis project/Transcripts/trump_harris_debate.txt"
+# path = "Vis project/Transcripts/trump_harris_debate.txt"
 
-ext = extract(path)
+# ext = extract(path)
 
-for i in range(len(ext[1])):
-    print(f'{ext[1][i] : <20}{':' : ^0}{ext[2][i] : >10}')
-print(ext[0])
+# for i in range(len(ext[1])):
+#     print(f'{ext[1][i] : <20}{':' : ^0}{ext[2][i] : >10}')
+# print(ext[0])
