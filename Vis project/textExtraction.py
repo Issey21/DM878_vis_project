@@ -34,7 +34,7 @@ def extract(path):
             l = re.sub(re_notLetters, "", l).casefold().split()    # Splits the line into seperate words and removes non-letters
 
             for word in l:  # assigns a speaker to each word in l and appends the word to words
-                words.append(word.capitalize())
+                words.append(word)
                 speaker.append(currentSpeaker)
 
     # if no element is added to the set, Python does not see it as a set, so the empty elements need to be removed...
