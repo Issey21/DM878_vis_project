@@ -26,15 +26,15 @@ def extract(path):
             # If no speaker is mentioned, it is assumed the previously mentioned speaker, is the speaker
             # for this line as well.
             lineSpeaker = re.match(re_names, l)
-            if (lineSpeaker and (len(lineSpeaker.group(0).split()) <= maxNameLenght)):  # a new speaker is found and the new speakers name is less than maxNameLenght characters
+            if (lineSpeaker and (len(lineSpeaker.group(0).split()) <= maxNameLenght)):  # a new speaker is found and the new speakers name is less than 12 characters
                 currentSpeaker = re.sub(":", "", lineSpeaker.group(0)).strip()
                 speakers.add(currentSpeaker)
                 l = re.sub(lineSpeaker.group(0), "", l).strip()  # removes the name of the speaker from the line
 
             l = re.sub(re_notLetters, "", l).casefold().split()    # Splits the line into seperate words and removes non-letters
+            words.extend(l) # appends the words to the list of all words
 
-            for word in l:  # assigns a speaker to each word in l and appends the word to words
-                words.append(word.capitalize())
+            for word in l:  # assigns a speaker to each word in l
                 speaker.append(currentSpeaker)
 
     # if no element is added to the set, Python does not see it as a set, so the empty elements need to be removed...
@@ -47,7 +47,6 @@ def extract(path):
 ## USED FOR TESTING
 
 # path = "Vis project/Transcripts/trump_harris_debate.txt"
-# path = "Vis project/Transcripts/testTranscript.txt"
 
 # ext = extract(path)
 
