@@ -1,4 +1,5 @@
 from dash import Dash, dcc, html, Input, Output, State, dash_table, callback, Patch, ctx
+from dash.exceptions import PreventUpdate
 import dash_bootstrap_components as dbc
 import plotly.express as px
 import plotly.graph_objects as go
@@ -10,7 +11,7 @@ import math
 import nltk
 from nltk.corpus import stopwords
 
-nltk.download('stopwords')
+# nltk.download('stopwords')
 excludedWords = stopwords.words('english')
 extraWords = ['he\'s', 'we\'re', 'they\'re', 'that\'s', 'i\'m']
 for word in extraWords:
@@ -23,6 +24,11 @@ colors = {
     'text': '#FFFFFF'
 }
 
+speakers, words, speaker = ext.extract("Vis project/Transcripts/trump_harris_debate.txt")
+wordDF = pd.DataFrame({'Word': [word for word in words if word not in excludedWords]})
+sortedDF = wordDF.value_counts().reset_index().rename(columns={'index': 'Word', 'A': 'Count'})
+words = [(words[i], speaker[i]) for i in range(len(words))]
+
 # Functions
 def divide_chunks(l, n):
     
@@ -30,10 +36,23 @@ def divide_chunks(l, n):
     for i in range(0, len(l), n): 
         yield l[i:i + n]
 
-speakers, words, speaker = ext.extract("Vis project/Transcripts/trump_harris_debate.txt")
-wordDF = pd.DataFrame({'Word': [word for word in words if word not in excludedWords]})
-sortedDF = wordDF.value_counts().reset_index().rename(columns={'index': 'Word', 'A': 'Count'})
-words = [(words[i], speaker[i]) for i in range(len(words))]
+def genCol(word):
+    sum1 = 1
+    sum2 = 1
+    sum3 = 1
+    for i, letter in enumerate(word):
+        sum1 = (sum1 * (i+2) + ord(letter)) % 255
+        sum2 = (sum2 + ord(letter) * (i+2)) % 255
+        sum3 = (sum3 + ord(letter) ** (i+2)) % 255
+        # print(sum1)
+        # print(sum2)
+        # print(sum3)
+        # print()
+    
+    # print('#%02X%02X%02X' % (sum1, sum2, sum3))
+    # print()
+    return '#%02X%02X%02X' % (sum1, sum2, sum3)
+
 
 
 columnDefs = [
@@ -49,7 +68,6 @@ columnDefs = [
 
 app.layout = html.Div(style={'backgroundColor': colors['background'], 'color': colors['text']}, children=[
     dcc.Store(id='textdf'),
-    dcc.Store(id='search'),
     # dbc.CardHeader(html.H5("Comparison of bigrams for two companies")),
     dbc.CardBody(
         [
@@ -64,7 +82,7 @@ app.layout = html.Div(style={'backgroundColor': colors['background'], 'color': c
                     ),
                     dbc.Row(
                         [
-                        dbc.Col(html.P("Choose speakers to compare:"), md=12),
+                        dbc.Col(html.P(), md=12),
                             dbc.Row([
                                 dbc.Col([
                                     dcc.Dropdown(
@@ -100,10 +118,33 @@ app.layout = html.Div(style={'backgroundColor': colors['background'], 'color': c
         id='word-graph',
     ),
     "Chunk Count:",
-    dcc.Input(id="chunks", type="number", value=30),
+    dcc.Input(id="chunks", type="number", value=30, min=1, max=len(words), debounce=True),
     dcc.Slider(id="slider", min=1, max=100, value=30, step=1),
-    # dcc.Input(id="filter", placeholder="Filter...", className="ag-theme-alpine-dark",),
-    dcc.Dropdown(options=list(sortedDF['Word'].values), multi=True, maxHeight = 0, value=sortedDF.head(n=3)['Word'].values, persistence=True, id="dropfilter", placeholder="Filter...", className="ag-theme-alpine-dark",),
+    dbc.Row([
+        dbc.Col([
+            dcc.Input(id="filter",
+                      placeholder="Filter...",
+                      className="ag-theme-alpine-dark",
+                      )
+            ],
+            md=1,
+            align='center'
+        ),
+        dbc.Col([
+            dcc.Dropdown(
+                options=list(sortedDF['Word'].values),
+                multi=True,
+                maxHeight = 0,
+                value=sortedDF.head(n=3)['Word'].values,
+                searchable=False,
+                id="dropfilter",
+                className="ag-theme-alpine-dark"),
+            ],
+            md=11
+        ),
+    ]),
+    
+    
     dag.AgGrid(
         id="table",
         className="ag-theme-alpine-dark",
@@ -129,29 +170,21 @@ app.layout = html.Div(style={'backgroundColor': colors['background'], 'color': c
     Input("chunks", "value"),
 )
 def updateChunks(slider, chunks):
+    if (not chunks):
+        raise PreventUpdate
     count = chunks if ctx.triggered_id == 'chunks' else slider
     return count, count
 
 
 @callback(
     Output("table", "dashGridOptions"),
-    Input("search", "data"),
+    Input("filter", "value"),
 )
 def update_filter(filter_value):
     gridOptions_patch = Patch()
     gridOptions_patch["quickFilterText"] = filter_value
     return gridOptions_patch
 
-@callback(
-    Output("search", "data"),
-    Input('dropfilter', 'search_value'),
-    State("search", "data"),
-)
-def get_search_value(search_value, data_store):
-    if search_value is None or not search_value:
-        print("EMPTY")
-    else:
-        return search_value
 
 @callback(
         Output('dropfilter', 'value'),
@@ -174,7 +207,6 @@ def update_filter_list(dropdownList, tableList):
         Input('slider', 'value')
 )
 def update_data(input_value, chunkCount):
-
     chunkSize = math.floor(len(words)/chunkCount)
     wordSections = list(divide_chunks(words, chunkSize))
     
@@ -188,7 +220,7 @@ def update_data(input_value, chunkCount):
                 amount = speakerWords.count(word)
                 
                 if amount != 0:
-                    row = pd.Series({'Chunk': i+1, 'Word': word, 'Amount': amount, 'Speaker': wordSpeaker }).to_frame().T
+                    row = pd.Series({'Chunk': i+1, 'Word': word, 'Amount': amount, 'Speaker': wordSpeaker, 'Colour': genCol(word) }).to_frame().T
                     df = pd.concat([df, row], ignore_index=True)
 
     return df.to_dict('records')
@@ -212,11 +244,12 @@ def update_figure(words_selected, input_data, speaker1, speaker2, chunkCount):
         return {}
     
     words = [row['Word'] for row in words_selected]
+    colourDict = {word: genCol(word) for word in words}
     
     df = df[df['Word'].isin(words)]
     df = df.loc[df['Speaker'].isin(speaker1+speaker2)]
     df.loc[df.Speaker.isin(speaker2), "Amount"] = -df[df.Speaker.isin(speaker2)].Amount.values
-    fig = px.bar(df, x = "Chunk", y="Amount", color="Word", hover_name="Word", 
+    fig = px.bar(df, x = "Chunk", y="Amount", color="Word", hover_name="Word", color_discrete_map=colourDict,
                 hover_data={'Chunk':False, 
                             #  'Chunk ':df["Chunk"].apply(lambda x:f' {x}'),
                                 'Word':False,
