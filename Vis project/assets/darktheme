@@ -1,0 +1,44 @@
+.Select-control {
+    background-color: #313131 !important;
+    color:white;
+  }
+  
+.Select-menu-outer {
+    background-color: #313131;
+    color: white;
+}
+
+.Select-value-label {
+    color: white !important;
+}
+
+.tab-parent {
+    background-color: #222;
+    border: 20px solid #444;
+}
+
+.tab {
+    width: auto;
+    background-color: #242424 !important;
+    color: #b5b5b5;
+    vertical-align: middel !important;
+    padding: 8px 10px 2px 10px !important;
+}
+
+.tab--selected{
+    background-color: #323232 !important;
+    border-color: #FFFFFF !important;
+    color: #ffffff !important;
+    /* padding: 8px 10px 2px 10px !important; */
+}
+
+.dcc-Graph {
+    background-color: #222;
+    border: 20px solid #444;
+    margin-top: 1000px; /* Adjust the margin as needed */
+    padding: 20px;
+}
+
+.Checklist {
+    color: #313131
+}
